@@ -12,7 +12,7 @@
 #include <string.h>
 #include "actions.h"
 
-#define PORT 8000
+#define PORT 8080
 
 void signal_handler(int signum) {
     if (signum == SIGINT) {
