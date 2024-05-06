@@ -51,9 +51,10 @@ void outputLog(int logNumber, const char *type, const char *message, const char 
     fclose(logFile);
 }
 
-int main() {
-    char input1[20], input2[20];
-    char opsi[20];
+int main(int argc, char *argv[]) {
+    char *opsi = argv[1];
+    char *input1 = argv[2];
+    char *input2 = argv[3];
     int pipefd[2];
     int logNumber = 1;
     int num1, num2;
@@ -64,12 +65,6 @@ int main() {
         perror("Pipe gagal");
         exit(EXIT_FAILURE);
     }
-
-    printf("Masukkan dua angka: ");
-    scanf("%s %s", input1, input2);
-
-    printf("Masukkan operasi : ");
-    scanf("%s", opsi);
 
     pid_t pid = fork();
 
@@ -90,7 +85,7 @@ int main() {
             exit(EXIT_FAILURE);
         }
 
-        if (strcmp(opsi, "./kalkulator-kali") == 0) {
+        if (strcmp(opsi, "-kali") == 0) {
             hasil = num1 * num2;
             if (hasil < 0) {
                 strcpy(words, "ERROR");
@@ -106,7 +101,7 @@ int main() {
             strftime(timestamp, sizeof(timestamp), "%d/%m/%Y %H:%M:%S", timeinfo);
 
             outputLog(logNumber, "KALI", strcat(strcat(strcat(input1, " kali "), input2), " sama dengan "), timestamp, words);
-        } else if (strcmp(opsi, "./kalkulator-tambah") == 0) {
+        } else if (strcmp(opsi, "-tambah") == 0) {
             hasil = num1 + num2;
             if (hasil < 0) {
                 strcpy(words, "ERROR");
@@ -122,7 +117,7 @@ int main() {
             strftime(timestamp, sizeof(timestamp), "%d/%m/%Y %H:%M:%S", timeinfo);
 
             outputLog(logNumber, "TAMBAH", strcat(strcat(strcat(input1, " tambah "), input2), " sama dengan "), timestamp, words);
-        } else if (strcmp(opsi, "./kalkulator-kurang") == 0) {
+        } else if (strcmp(opsi, "-kurang") == 0) {
             hasil = num1 - num2;
             if (hasil < 0) {
                 strcpy(words, "ERROR");
@@ -147,7 +142,7 @@ int main() {
             fprintf(logFile, "[%s] [KURANG] %s pada pengurangan\n", timestamp, words);
             fclose(logFile);
 
-        } else if (strcmp(opsi, "./kalkulator-bagi") == 0) {
+        } else if (strcmp(opsi, "-bagi") == 0) {
             if (num2 == 0) {
                 printf("Pembagian dengan nol tidak diperbolehkan.\n");
                 close(pipefd[1]);
@@ -167,7 +162,7 @@ int main() {
             timeinfo = localtime(&rawtime);
             strftime(timestamp, sizeof(timestamp), "%d/%m/%Y %H:%M:%S", timeinfo);
 
-            outputLog(logNumber, "BAGI", strcat(strcat(strcat(input1, " bagi "), input2), " sama dengan "), timestamp, words);
+            outputLog(logNumber, "BAGI", strcat(strcat(strcat(input1, " bagi "), input2), " sama dengan"), timestamp, words);
         } else {
             printf("Operasi tidak valid\n");
             close(pipefd[1]);
@@ -183,13 +178,13 @@ int main() {
         char hasilKalimat[100];
         read(pipefd[0], hasilKalimat, sizeof(hasilKalimat));
 
-        if (strcmp(opsi, "./kalkulator-kali") == 0) {
+        if (strcmp(opsi, "-kali") == 0) {
             printf("Hasil perkalian %s dan %s adalah %s.\n", input1, input2, hasilKalimat);
-        } else if (strcmp(opsi, "./kalkulator-tambah") == 0) {
+        } else if (strcmp(opsi, "-tambah") == 0) {
             printf("Hasil penjumlahan %s dan %s adalah %s.\n", input1, input2, hasilKalimat);
-        } else if (strcmp(opsi, "./kalkulator-kurang") == 0) {
+        } else if (strcmp(opsi, "-kurang") == 0) {
             printf("Hasil pengurangan %s dan %s adalah %s.\n", input1, input2, hasilKalimat);
-        } else if (strcmp(opsi, "./kalkulator-bagi") == 0) {
+        } else if (strcmp(opsi, "-bagi") == 0) {
             printf("Hasil pembagian %s dan %s adalah %s.\n", input1, input2, hasilKalimat);
         } else {
             printf("Operasi tidak valid\n");
