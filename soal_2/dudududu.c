@@ -139,7 +139,7 @@ int main(int argc, char *argv[]) {
             timeinfo = localtime(&rawtime);
             strftime(timestamp, sizeof(timestamp), "%d/%m/%Y %H:%M:%S", timeinfo);
 
-            fprintf(logFile, "[%s] [KURANG] %s pada pengurangan\n", timestamp, words);
+            fprintf(logFile, "[%s] [KURANG] ERROR pada pengurangan\n", timestamp);
             fclose(logFile);
 
         } else if (strcmp(opsi, "-bagi") == 0) {
