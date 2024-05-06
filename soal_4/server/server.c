@@ -18,9 +18,14 @@ void send_response(int client_socket, const char *message) {
 
 //mencatat di file Change.log
 void log_change(FILE *log_file, const char *type, const char *detail) {
-    time_t now = time(NULL);
+    time_t now;
+    struct tm *tm_info;
+    char timestamp[20];
+    time(&now);
+    tm_info = localtime(&now);
+    strftime(timestamp, sizeof(timestamp), "%d/%m/%y", tm_info);
     char log_entry[size_buffer];
-    sprintf(log_entry, "[%s] [%s] %s\n", ctime(&now), type, detail);
+    sprintf(log_entry, "[%s] [%s] %s\n", timestamp, type, detail);
     log_entry[strcspn(log_entry, "\n")] = ' ';
     fputs(log_entry, log_file);
     fflush(log_file);
