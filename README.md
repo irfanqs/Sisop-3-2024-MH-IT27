@@ -1,4 +1,4 @@
-# Sisop-3-2024-MH-IT27
+![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/130438307/23ab04bb-92d1-4b0b-838f-59e5ad78b53f)# Sisop-3-2024-MH-IT27
 Anggota Kelompok :
 |  NRP|Nama Anggota  |
 |--|--|
@@ -597,6 +597,13 @@ int main() {
     }
 }
 ```
+
+Berikut merupakan cara kerja dari setiap program
+![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/130438307/c9abe76e-4776-4aa7-8ba9-860ab545019d)
+![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/130438307/7db4c119-3f5c-432d-9fc6-0687a25c98bd)
+![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/130438307/26d670dd-aed4-4780-8a67-604a8fc9eb00)
+<br> Berikut merupakan isi dari folder database dan juga isi dari file db.log <br>
+![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/130438307/1dfefce7-0b0a-4be5-a808-1f6a60d1dd06)
 
 ### Kendala
 Tidak ada kendala pada soal ini
