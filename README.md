@@ -2086,6 +2086,9 @@ untuk menjalankan file ini kita perlu command `gcc client.c -o client; ./client`
 ![Screenshot from 2024-05-11 20-58-23](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/79549192/5f8577dc-655a-4417-97de-808b076cc972)
 ![Screenshot from 2024-05-11 20-58-27](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/79549192/84eb7ad6-ada3-45aa-99f8-5abc68878f2c)
 
+*file change.log*
+![Screenshot from 2024-05-11 21-18-19](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/79549192/74e049c6-e268-4e1c-b8eb-854c098652b7)
+
 
 ### Kendala
 Tidak ada kendala pada nomor ini
