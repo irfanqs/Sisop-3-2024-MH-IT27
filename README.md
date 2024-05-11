@@ -613,14 +613,166 @@ Tidak ada revisi pada soal ini
 
 ## Soal 2
 <details><summary>Klik untuk melihat soal</summary>
+Max Verstappen 🏎️ seorang pembalap F1 dan programer memiliki seorang adik bernama Min Verstappen (masih SD) sedang menghadapi tahap paling kelam dalam kehidupan yaitu perkalian matematika, Min meminta bantuan Max untuk membuat kalkulator perkalian sederhana (satu sampai sembilan). Sembari Max nguli dia menyuruh Min untuk belajar perkalian dari web (referensi) agar tidak bergantung pada kalkulator.
+(Wajib menerapkan konsep pipes dan fork seperti yang dijelaskan di modul Sisop. Gunakan 2 pipes dengan diagram seperti di modul 3).
+	a. Sesuai request dari adiknya Max ingin nama programnya dudududu.c. Sebelum program parent process dan child process, ada input dari user berupa 2 string. Contoh input: tiga tujuh. 
+	b. Pada parent process, program akan mengubah input menjadi angka dan melakukan perkalian dari angka yang telah diubah. Contoh: tiga tujuh menjadi 21. 
+	c. Pada child process, program akan mengubah hasil angka yang telah diperoleh dari parent process menjadi kalimat. Contoh: `21` menjadi “dua puluh satu”.
+	d. Max ingin membuat program kalkulator dapat melakukan penjumlahan, pengurangan, dan pembagian, maka pada program buatlah argumen untuk menjalankan program : 
+		i. 	perkalian	: ./kalkulator -kali
+		ii. 	penjumlahan	: ./kalkulator -tambah
+		iii. 	pengurangan	: ./kalkulator -kurang
+		iv. 	pembagian	: ./kalkulator -bagi
+	   Beberapa hari kemudian karena Max terpaksa keluar dari Australian Grand Prix 2024 membuat Max tidak bersemangat untuk melanjutkan programnya sehingga kalkulator yang dibuatnya cuma menampilkan hasil positif jika bernilai negatif maka program akan print “ERROR” serta cuma menampilkan bilangan bulat jika ada bilangan desimal 
+           maka dibulatkan ke bawah.
+	e. Setelah diberi semangat, Max pun melanjutkan programnya dia ingin (pada child process) kalimat akan di print dengan contoh format : 
+		i. 	perkalian	: “hasil perkalian tiga dan tujuh adalah dua puluh satu.”
+		ii. 	penjumlahan	: “hasil penjumlahan tiga dan tujuh adalah sepuluh.”
+		iii.	pengurangan	: “hasil pengurangan tujuh dan tiga adalah empat.”
+		iv.	pembagian	: “hasil pembagian tujuh dan tiga adalah dua.”
+	f. Max ingin hasil dari setiap perhitungan dicatat dalam sebuah log yang diberi nama histori.log. Pada parent process, lakukan pembuatan file log berdasarkan data yang dikirim dari child process. 
+		-Format: [date] [type] [message]
+		-Type: KALI, TAMBAH, KURANG, BAGI
+		-Ex:
+			1. [10/03/24 00:29:47] [KALI] tujuh kali enam sama dengan empat puluh dua.
+			2. [10/03/24 00:30:00] [TAMBAH] sembilan tambah sepuluh sama dengan sembilan belas.
+			3. [10/03/24 00:30:12] [KURANG] ERROR pada pengurangan.
 
 </details>
 
 ### Penjelasan
+berikut adalah header filenya
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <string.h>
+#include <math.h>
+#include <time.h>
+```
+kedua kita menambahkan fungsi `stringToNumber` yang memiliki fungsi untuk mengonversi string yang mewakili angka dalam bahasa Indonesia menjadi bilangan bulat. Fungsi ini mencocokkan string input dengan daftar kata kunci yang telah ditentukan, kemudian mengembalikan nilai bilangan bulat yang sesuai. Jika string tidak cocok dengan kata kunci manapun, fungsi ini mengembalikan nilai -1.
+```c
+int stringToNumber(char *str) {
+    if (strcmp(str, "satu") == 0) return 1;
+    else if (strcmp(str, "dua") == 0) return 2;
+    else if (strcmp(str, "tiga") == 0) return 3;
+    else if (strcmp(str, "empat") == 0) return 4;
+    else if (strcmp(str, "lima") == 0) return 5;
+    else if (strcmp(str, "enam") == 0) return 6;
+    else if (strcmp(str, "tujuh") == 0) return 7;
+    else if (strcmp(str, "delapan") == 0) return 8;
+    else if (strcmp(str, "sembilan") == 0) return 9;
+    else return -1; 
+}
+```
+
+kemudian kita membuat fungsi `angkaKeKata` yang memiliki fungsi untuk mengonversi bilangan bulat menjadi string yang mewakili angka dalam bahasa Indonesia. Fungsi ini menggunakan array of strings untuk mewakili angka dalam bentuk kata-kata.
+```c
+void angkaKeKata(int num, char *words) {
+    char *units[] = {"nol", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan"};
+    char *teens[] = {"sepuluh", "sebelas", "dua belas", "tiga belas", "empat belas", "lima belas", "enam belas", "tujuh belas", "delapan belas", "sembilan belas"};
+    char *tens[] = {"", "sepuluh", "dua puluh", "tiga puluh", "empat puluh", "lima puluh", "enam puluh", "tujuh puluh", "delapan puluh", "sembilan puluh"};
+
+    if (num < 10) {
+        strcpy(words, units[num]);
+    } else if (num < 20) {
+        strcpy(words, teens[num - 10]);
+    } else if (num < 100) {
+        int digit1 = num / 10;
+        int digit2 = num % 10;
+        if (digit2 == 0) {
+            strcpy(words, tens[digit1]);
+        } else {
+            sprintf(words, "%s %s", tens[digit1], units[digit2]);
+        }
+    }
+}
+```
+
+Main Function
+1. Membuat pipe untuk komunikasi antara parent process and child process.
+```c
+if (pipe(pipefd) == -1) {
+    perror("Pipe gagal");
+    exit(EXIT_FAILURE);
+}
+```
+2. Melakukan fork untuk membuat child process.
+```c
+pid_t pid = fork();
+
+if (pid == -1) {
+    perror("Fork gagal");
+    exit(EXIT_FAILURE);
+}
+
+```
+3. Pemisahan antara proses anak dan induk berdasarkan nilai kembalian dari fork().
+```c
+if (pid == 0) {
+    // child process
+} else {
+    // parent process
+}
+```
+4. Menutup file descriptor untuk membaca pada child process karena proses ini hanya akan menulis ke pipe.
+```c
+close(pipefd[0]);
+```
+5. Mengonversi input kata-kata menjadi bilangan bulat.
+```c
+num1 = stringToNumber(input1);
+num2 = stringToNumber(input2);
+```
+6. Menulis hasil operasi ke dalam pipe untuk proses induk membacanya.
+```c
+write(pipefd[1], words, strlen(words) + 1);
+```
+7. Menutup file descriptor untuk menulis pada child process.
+```c
+close(pipefd[1]);
+```
+7. Membaca hasil operasi dari pipe yang dikirim oleh child process.
+```c
+char hasilKalimat[100];
+read(pipefd[0], hasilKalimat, sizeof(hasilKalimat));
+```
+8. Mencetak hasil operasi dalam bentuk kata-kata.
+```c
+printf("Hasil perkalian %s dan %s adalah %s.\n", input1, input2, hasilKalimat);
+```
+9. Menutup file descriptor untuk membaca pada parent process.
+```c
+close(pipefd[0]);
+```
+berikut untuk hasil kali
+![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/150106905/9d9447b6-2319-46c3-b738-8c0812d57481)
+
+berikut untuk hasil bagi
+![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/150106905/002eb7af-998d-4c7f-9df8-030de37dd500)
+
+berikut untuk hasil tambah
+![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/150106905/53ff76d8-c9dc-4588-a5a3-40f6a3a79b47)
+
+berikut untuk hasil kurang
+![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/150106905/ffbac1f8-992b-47f8-a351-185de3d34949)
+
+berikut untuk hasil negatif
+![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/150106905/945a2c9e-9819-4a07-86e2-8d7427ccb8b2)
+
+berikut untuk hasil desimal
+![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/150106905/c430e4dd-f6a5-44a0-9405-bf6539a69a88)
+
+berikut untuk file lognya
+![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/150106905/ad3da180-762b-4cfe-93bb-de81fc8648fd)
+
 
 ### Kendala
+Tidak ada kendala pada soal ini
 
 ### Revisi
+Tidak ada revisi pada soal ini
 
 ## Soal 3
 <details><summary>Klik untuk melihat soal</summary>
