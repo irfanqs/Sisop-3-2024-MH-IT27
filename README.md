@@ -747,24 +747,37 @@ printf("Hasil perkalian %s dan %s adalah %s.\n", input1, input2, hasilKalimat);
 close(pipefd[0]);
 ```
 berikut untuk hasil kali
+
 ![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/150106905/9d9447b6-2319-46c3-b738-8c0812d57481)
 
+
 berikut untuk hasil bagi
+
 ![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/150106905/002eb7af-998d-4c7f-9df8-030de37dd500)
 
+
 berikut untuk hasil tambah
+
 ![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/150106905/53ff76d8-c9dc-4588-a5a3-40f6a3a79b47)
 
+
 berikut untuk hasil kurang
+
 ![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/150106905/ffbac1f8-992b-47f8-a351-185de3d34949)
 
+
 berikut untuk hasil negatif
+
 ![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/150106905/945a2c9e-9819-4a07-86e2-8d7427ccb8b2)
 
+
 berikut untuk hasil desimal
+
 ![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/150106905/c430e4dd-f6a5-44a0-9405-bf6539a69a88)
 
+
 berikut untuk file lognya
+
 ![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/150106905/ad3da180-762b-4cfe-93bb-de81fc8648fd)
 
 
