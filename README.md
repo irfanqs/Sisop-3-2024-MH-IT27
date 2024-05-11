@@ -1,4 +1,4 @@
-![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/130438307/23ab04bb-92d1-4b0b-838f-59e5ad78b53f)# Sisop-3-2024-MH-IT27
+# Sisop-3-2024-MH-IT27
 Anggota Kelompok :
 |  NRP|Nama Anggota  |
 |--|--|
