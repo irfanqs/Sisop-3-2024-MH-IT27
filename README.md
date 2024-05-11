@@ -598,7 +598,7 @@ int main() {
 }
 ```
 
-Berikut merupakan cara kerja dari setiap program
+### Berikut merupakan cara kerja dari setiap program <br>
 ![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/130438307/c9abe76e-4776-4aa7-8ba9-860ab545019d)
 ![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/130438307/7db4c119-3f5c-432d-9fc6-0687a25c98bd)
 ![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/130438307/26d670dd-aed4-4780-8a67-604a8fc9eb00)
