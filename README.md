@@ -1533,6 +1533,445 @@ Tidak ada revisi pada soal ini
 </details>
 
 ### Penjelasan
+### 1. buat **server.c**
+berikut isi dan penjelasan dari file *server.c*
+
+- berikut header filesnya:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <ctype.h>
+#include <time.h>
+```
+
+- maks_client mendifinisikan jumlah maksimum client yang dapat di tangani, sedangkan size_buffer merupakan ukuran buffer untuk membaca data.
+```c
+#define maks_clients 10
+#define size_buffer 1024
+```
+- Fungsi send_response digunakan untuk mengirim tanggapan ke klien. Ini membungkus pesan dalam format yang benar dan mengirimkannya ke socket klien.
+```c
+void send_response(int client_socket, const char *message) {
+    char response[size_buffer];     // Buffer untuk menyimpan pesan yang akan dikirim
+    snprintf(response, size_buffer, "%s\n", message); // Memformat pesan dengan newline
+    send(client_socket, response, strlen(response), 0); // Mengirim pesan yang diformat melalui socket
+}
+```
+- Fungsi log_change digunakan untuk mencatat perubahan dalam file log, dengan memformat pesan log dengan tanggal dan waktu, jenis perubahan, dan detailnya, lalu menuliskannya ke file log.
+```c
+void log_change(FILE *log_file, const char *type, const char *detail) {
+    time_t now;                     // untuk menyimpan waktu saat ini
+    struct tm *tm_info;             // untuk menyimpan waktu lokal
+    char timestamp[20];             // string untuk menyimpan tanggal yang diformat
+    time(&now);                    
+    tm_info = localtime(&now);      // mengonversi ke waktu lokal
+    strftime(timestamp, sizeof(timestamp), "%d/%m/%y", tm_info); // memformat tanggal menjadi DD/MM/YY
+    char log_entry[size_buffer];    // Buffer untuk menyimpan entri log
+    sprintf(log_entry, "[%s] [%s] %s\n", timestamp, type, detail); // memformat entri log
+    log_entry[strcspn(log_entry, "\n")] = ' '; // menghapus karakter newline
+    fputs(log_entry, log_file);     // menulis entri log ke file log.
+    fflush(log_file);               // membersihkan stream file.
+}
+```
+- Fungsi handle_client dipanggil untuk menangani koneksi dari client. dia ngrbaca input dari client, memprosesnya, dan memberikan tanggapan sesuai.
+```c
+void handle_client(int client_socket, FILE *anime_file, FILE *log_file) {
+    char buffer[size_buffer];       // buffer untuk menyimpan data yang dibaca dari socket
+    int read_bytes;                 // variabel untuk menyimpan jumlah byte yang dibaca
+```
+- Loop untuk membaca data dari socket klien dan memasukkannya ke dalam buffer. Jika pesan dari klien terakhirnya adalah newline, bakal dihapus karena tidak diperlukan dalam pemrosesan
+```c
+while ((read_bytes = read(client_socket, buffer, size_buffer - 1)) > 0) {
+        buffer[read_bytes] = '\0'; 
+
+        printf("Received input from client: %s\n", buffer); // mencetak input dari client
+        if (buffer[read_bytes - 1] == '\n') // memeriksa jika karakter terakhir adalah newline
+            buffer[read_bytes - 1] = '\0';  // menghapus newline
+```
+
+- Buffer ada dua bagian: command dan argumen. Ini dilakukan dengan menggunakan fungsi strtok untuk memisahkan string berdasarkan spasi dan newline
+```c
+        char *command = strtok(buffer, " "); // memisahkan perintah dari buffer
+        char *argument = strtok(NULL, "\n"); // memisahkan argumen dari buffer
+```
+
+- Jika tidak ada command yang diberikan oleh client, server akan mengirim tanggapan "Invalid Command" dan melanjutkan loop.
+```c
+if (command == NULL) {              // jika perintah .
+            send_response(client_socket, "Invalid Command\n"); // mengirimkan respons 'Invalid Command'.
+            continue;                       // melanjutkan ke iterasi berikutnya.
+        }
+```
+- Jika perintah yang diterima adalah "exit", server akan mengirim pesan "Connection closed" ke client dan menutup koneksi
+```c
+        if (strcmp(command, "exit") == 0) {
+            printf("Exit command received. Closing connection.\n");
+            send_response(client_socket, "Connection closed.\n");
+            break;       // Keluar dari loop untuk menutup koneksi.
+        }
+```
+- Jika perintah yang diterima adalah "tampilkan", server akan membaca file anime dan mengirimkan daftar judul anime ke client
+```c
+        if (strcmp(command, "tampilkan") == 0) {
+            char response[size_buffer] = ""; 
+            char line[size_buffer];         
+            int count = 1;                 
+            rewind(anime_file);              // mengembalikan pointer file ke awal file.
+            while (fgets(line, size_buffer, anime_file) != NULL) {
+                char *token = strtok(line, ","); // memisahkan baris dengan koma
+                token = strtok(NULL, ",");       // lewati token pertama
+                token = strtok(NULL, ",");       // dapatkan token ketiga (judul)
+                token[strcspn(token, "\n")] = '\0'; // menghapus karakter newline
+                char formatted_line[size_buffer];
+                sprintf(formatted_line, "%2d. %s\n", count++, token); // memformat baris
+                strcat(response, formatted_line); // menambahkan baris yang diformat ke respons
+            }
+            send_response(client_socket, response); // Mengirim respons ke client
+```
+- Jika perintah yang diterima adalah "hari", server akan mencari anime yang ditayangkan pada hari yang diinginkan dan mengirimkan daftar anime tersebut ke client.
+```c
+        } else if (strcmp(command, "hari") == 0) {
+            if (argument == NULL) {                 // Jika argumen NULL.
+                send_response(client_socket, "Invalid Command\n"); // maka akan mengirimkan respons 'Invalid Command'.
+                continue;                           // melanjutkan ke iterasi berikutnya
+            }
+            char response[size_buffer] = "";        // Buffer untuk menyimpan respons
+            char line[size_buffer];                 // Buffer untuk menyimpan baris yang dibaca dari file.
+            int count = 1;                          // Penghitung untuk daftar anime
+            rewind(anime_file);                     // Mengembalikan pointer file
+            while (fgets(line, size_buffer, anime_file) != NULL) {
+                char *token = strtok(line, ",");    // Memisahkan baris dengan koma
+                if (strcmp(token, argument) == 0) { // Membandingkan hari dengan argumen
+                    token = strtok(NULL, ",");      // Lewati token kedua
+                    token = strtok(NULL, ",");      // Dapatkan token ketiga (judul)
+                    token[strcspn(token, "\n")] = '\0'; // Menghapus karakter newline
+                    char formatted_line[size_buffer];
+                    sprintf(formatted_line, "%2d. %s\n", count++, token); 
+                    strcat(response, formatted_line); // Menambahkan baris yang diformat ke respons
+                }
+            }
+            if (strlen(response) == 0) {            // Jika respons kosong
+                send_response(client_socket, "No anime found for the specified day\n"); // Mengirimkan respons 'No anime found for the specified day'.
+            } else {
+                send_response(client_socket, response); // Mengirim respons ke client.
+            }
+```
+- Jika perintah yang diterima adalah "genre", server akan mencari anime yang memiliki genre yang diinginkan dan mengirimkan daftar anime tersebut ke klien.
+```c
+ } else if (strcmp(command, "genre") == 0) {
+            if (argument == NULL) {                 // Jika argumen null.
+                send_response(client_socket, "Invalid Command\n"); // Mengirimkan respons 'Invalid Command'
+                continue;                           
+            }
+            char response[size_buffer] = "";       
+            char line[size_buffer];                 
+            int count = 1;                          // Penghitung untuk daftar anime
+            rewind(anime_file);                     
+            while (fgets(line, size_buffer, anime_file) != NULL) {
+                char *token = strtok(line, ",");  
+                token = strtok(NULL, ",");          // Dapatkan token kedua (genre)
+                if (strcmp(token, argument) == 0) { // Membandingkan genre dengan argumen
+                    token = strtok(NULL, ",");      // Dapatkan token ketiga (judul)
+                    token[strcspn(token, "\n")] = '\0'; // Menghapus karakter newline
+                    char formatted_line[size_buffer];
+                    sprintf(formatted_line, "%2d. %s\n", count++, token); // Memformat baris
+                    strcat(response, formatted_line); // Menambahkan baris yang diformat ke respons
+                }
+            }
+            if (strlen(response) == 0) {            // Jika respons kosong.
+                send_response(client_socket, "No anime found for the specified genre\n"); // Mengirimkan respons 'No anime found for the specified genre'
+            } else {
+                send_response(client_socket, response); // Mengirim respons ke klien
+            }
+```
+- Jika perintah yang diterima adalah "status", server akan mencari status dari anime yang dimaksud dan mengirimkan status tersebut ke client
+```c
+   } else if (strcmp(command, "status") == 0) {
+            if (argument == NULL) {                 // Jika argumen null
+                send_response(client_socket, "Invalid Command\n"); // Mengirimkan respons 'Invalid Command'
+                continue;                           // Melanjutkan ke iterasi berikutnya.
+            }
+            char response[size_buffer] = "";        // Buffer untuk menyimpan respons
+            char line[size_buffer];                 // Buffer untuk menyimpan baris yang dibaca dari file
+            rewind(anime_file);                     // Mengembalikan pointer file ke awal file
+            while (fgets(line, size_buffer, anime_file) != NULL) {
+                char *day = strtok(line, ",");      // Memisahkan baris dengan koma (hari)
+                char *genre = strtok(NULL, ",");    // Dapatkan token kedua (genre)
+                char *title = strtok(NULL, ",");    // Dapatkan token ketiga (judul)
+                char *status = strtok(NULL, ",");   // Dapatkan token keempat (status)
+                
+                while (strtok(NULL, ",") != NULL) {
+                    strcat(title, strtok(NULL, ",")); // Menambahkan token berikutnya ke judul jika ada koma di dalamnya
+                }
+
+                char *clean_title = strtok(title, "\n");
+                for (int i = 0; clean_title[i]; i++) {
+                    clean_title[i] = tolower(clean_title[i]); // Mengubah judul menjadi huruf kecil untuk perbandingan
+                }
+                for (int i = 0; argument[i]; i++) {
+                    argument[i] = tolower(argument[i]); // Mengubah argumen menjadi huruf kecil untuk perbandingan
+                }
+                if (strcasecmp(clean_title, argument) == 0) { // Perbandingan tidak peka huruf besar/kecil antara judul dan argumen
+                    sprintf(response, "%s\n", status); // Memformat status
+                    break; // Keluar dari loop karena status ditemukan
+                }
+            }
+            if (strlen(response) == 0) {            // Jika respons kosong.
+                send_response(client_socket, "Anime not foundn\n"); // Mengirimkan respons 'Anime not found'.
+            } else {
+                send_response(client_socket, response); // Mengirim respons ke klien.
+            }
+```
+- Jika perintah yang diterima adalah "add", server akan menambahkan anime baru ke dalam file anime dan mencatat perubahan tersebut ke dalam file log.
+```c
+  } else if (strcmp(command, "add") == 0) {
+            if (argument == NULL) {                 // Jika argumen null
+                send_response(client_socket, "Invalid Command\n"); // Mengirimkan respons 'Invalid Command'
+                continue;                         
+            }
+            char *day = strtok(argument, ",");     
+            char *genre = strtok(NULL, ",");     
+            char *title = strtok(NULL, ",");       
+            char *status = strtok(NULL, ","); 
+
+            fprintf(anime_file, "\n%s,%s,%s,%s", day, genre, title, status); // Menulis anime baru ke file.
+            fflush(anime_file);                   // Membersihkan stream file
+            char log_entry[size_buffer];
+            snprintf(log_entry, size_buffer, "ADD: %s, %s, %s, %s", day, genre, title, status); // Memformat entri log.
+            log_change(log_file, "ADD", log_entry); // Mencatat penambahan
+
+            send_response(client_socket, "Anime successfully added.\n"); // Mengirimkan respons 'Anime successfully added.'.
+```
+- Jika perintah yang diterima adalah "edit", server akan mengedit informasi anime yang sudah ada di file anime dan mencatat perubahan ke dalam file log.
+```c
+   } else if (strcmp(command, "edit") == 0) {
+            if (argument == NULL) {                 // Jika argumen null
+                send_response(client_socket, "Invalid Command\n"); // Mengirimkan respons 'Invalid Command'
+                continue;                           // Melanjutkan ke iterasi berikutnya.
+            }
+//Dapatkan token
+            char *anime_to_edit = strtok(argument, ","); 
+            char *new_day = strtok(NULL, ",");         
+            char *new_genre = strtok(NULL, ",");      
+            char *new_title = strtok(NULL, ",");        
+            char *new_status = strtok(NULL, ",");
+
+            FILE *temp_file = fopen("/home/winds/soal_4/temp.csv", "w"); // Membuka file sementara untuk pengeditan
+            if (temp_file == NULL) {
+                perror("Failed to create temporary file "); // Mencetak kesalahan ketika pembukaan file gagal.
+                send_response(client_socket, "Failed to edit anime.\n"); // Mengirimkan respons 'Failed to edit anime'.
+                continue; // Melanjutkan ke iterasi berikutnya.
+            }
+            rewind(anime_file);                        // Mengembalikan pointer file ke awal file
+            char line[size_buffer];                    // Buffer untuk menyimpan baris yang dibaca dari file
+            while (fgets(line, size_buffer, anime_file) != NULL) {
+                char *day = strtok(line, ",");         // Memisahkan baris dengan koma (hari)
+                char *genre = strtok(NULL, ",");       // Dapatkan token kedua (genre)
+                char *title = strtok(NULL, ",");       // Dapatkan token ketiga (judul)
+                char *status = strtok(NULL, ",");      // Dapatkan token keempat (status)
+
+                while (strtok(NULL, ",") != NULL) {
+                    strcat(title, strtok(NULL, ","));  // Menambahkan token berikutnya ke judul jika ada koma di dalamnya
+                }
+                char *clean_title = strtok(title, "\n"); // Menghapus karakter newline dari judul
+                if (strcasecmp(clean_title, anime_to_edit) == 0) { // Perbandingan tidak peka huruf besar/kecil antara judul dan argumen
+                    fprintf(temp_file, "%s,%s,%s,%s\n", new_day, new_genre, new_title, new_status); // Menulis detail baru ke file sementara
+                } else {
+                    fprintf(temp_file, "%s,%s,%s,%s", day, genre, title, status); // Menulis detail lama ke file sementara.
+                }
+            }
+
+            fclose(anime_file);                        // Menutup file anime.
+            fclose(temp_file);                         // Menutup file sementara.
+            if (rename("/home/winds/soal_4/temp.csv", "/home/winds/soal_4/myanimelist.csv") != 0) {
+                perror("Failed to rename file");   // Mencetak kesalahan jika penggantian nama file gagal.
+                send_response(client_socket, "Failed to edit anime\n");
+                continue;
+            }
+
+            char log_entry[size_buffer];
+            snprintf(log_entry, size_buffer, "EDIT: %s, %s, %s, %s, %s", anime_to_edit, new_day, new_genre, new_title, new_status); // Memformat entri log
+            log_change(log_file, "EDIT", log_entry); // Mencatat pengeditan
+            send_response(client_socket, "Anime successfully edited.\n"); // Mengirimkan respons 'Anime successfully edited'
+            anime_file = fopen("/home/winds/soal_4/myanimelist.csv", "r+"); // Membuka kembali file anime
+            if (anime_file == NULL) {
+                perror("Failed to reopen anime list file"); // Mencetak kesalahan jika pembukaan kembali file gagal
+                return; 
+            }
+```
+- Jika perintah yang diterima adalah "delete", server akan menghapus anime yang dari file anime dan mencatat perubahan tersebut ke dalam file log.
+```c
+ } else if (strcmp(command, "delete") == 0) {
+            if (argument == NULL) {                 // Jika argumen null
+                send_response(client_socket, "Invalid Command\n"); // Mengirimkan respons 'Invalid Command'.
+                continue;                           
+            }
+            FILE *temp_file = fopen("/home/winds/soal_4/temp.csv", "w"); // Membuka file sementara untuk penghapusan.
+            if (temp_file == NULL) {
+                perror("Gagal membuat file sementara");
+                send_response(client_socket, "Gagal menghapus anime.\n"); 
+                continue; 
+            }
+            rewind(anime_file);                        // mengembalikan pointer file ke awal file
+            char line[size_buffer];                    // buffer untuk menyimpan baris yang dibaca dari file
+            int deleted = 0;                           
+            while (fgets(line, size_buffer, anime_file) != NULL) {
+                char *day = strtok(line, ",");       
+                char *genre = strtok(NULL, ",");      
+                char *title = strtok(NULL, ",");       
+                char *status = strtok(NULL, ",");     
+               
+                while (strtok(NULL, ",") != NULL) {
+                    strcat(title, strtok(NULL, ","));  // Menambahkan token berikutnya ke judul jika ada koma di dalamnya.
+                }
+    
+                char *clean_title = strtok(title, "\n"); // Menghapus karakter newline dari judul.
+                if (strcasecmp(clean_title, argument) == 0) { // Perbandingan tidak peka huruf besar/kecil antara judul dan argumen.
+                    deleted = 1;                        // Menetapkan penanda penghapusan
+                    continue;                           
+                }
+
+                fprintf(temp_file, "%s,%s,%s,%s", day, genre, title, status); // Menulis baris ke file sementara
+            
+
+            fclose(temp_file);                         // Menutup temp_file sementara
+            fclose(anime_file);                        // Menutup file anime
+            if (remove("/home/winds/soal_4/myanimelist.csv") != 0) {
+                perror("Gagal menghapus file");       // Mencetak kesalahan jika penghapusan file gagal.
+                send_response(client_socket, "Gagal menghapus anime.\n"); // Mengirimkan respons 'Gagal menghapus anime'
+                continue;
+            }
+            if (rename("/home/winds/soal_4/temp.csv", "/home/winds/soal_4/myanimelist.csv") != 0) {
+                perror("Gagal mengganti nama file"); 
+                send_response(client_socket, "Gagal menghapus anime.\n"); // Mengirimkan respons 'Gagal menghapus anime'
+                continue; 
+            }
+            if (deleted) {                           
+                char log_entry[size_buffer];
+                snprintf(log_entry, size_buffer, "DELETE: %s", argument); // Memformat entri log
+                log_change(log_file, "DELETE", log_entry); // Mencatat penghapusan
+                send_response(client_socket, "Anime berhasil dihapus.\n"); // Mengirimkan respons 'Anime berhasil dihapus'
+            } else {
+                send_response(client_socket, "Anime tidak ditemukan.\n"); .
+            }
+            anime_file = fopen("/home/winds/soal_4/myanimelist.csv", "r+"); // Membuka kembali file anime
+            if (anime_file == NULL) {
+                perror("Gagal membuka kembali file daftar anime"); // Mencetak kesalahan jika pembukaan kembali file gagal
+                return;
+            }
+        } else {
+            send_response(client_socket, "Invalid Command\n"); // Mengirimkan respons 'Invalid Command' untuk perintah yang tidak dikenal.
+        }
+
+```
+```c
+  memset(buffer, 0, size_buffer); // Membersihkan buffer untuk pembacaan berikutnya
+    }
+
+    if (read_bytes == 0) {
+        printf("Client closed the connection.\n"); // Mencetak pesan di server untuk penutupan koneksi oleh klien
+    } else {
+        perror("read failed"); // Mencetak kesalahan jika pembacaan gagal
+    }
+
+    close(client_socket); // Menutup socket klien
+}
+```
+- Fungsi main()  membuka file daftar anime dan file log, membuat dan mengikat socket server. Kemudian, dalam loop utama, server mendengarkan koneksi masuk dari client. Setiap kali koneksi diterima, fungsi handle_client() dipanggil untuk menangani permintaan client. Setelah menangani permintaan, server menutup soket client, file anime, file log, dan socket server sebelum kembali dan mengindikasikan kesuksesan dengan kode keluar 0.
+```c
+int main() {
+    int server_socket, client_socket; // Variabel untuk socket server dan client
+    int opt = 1;                      // Opsi untuk setsockopt
+    struct sockaddr_in server_address, client_address; //  untuk menyimpan informasi alamat server dan klien.
+    socklen_t client_len;             // Variabel untuk menyimpan ukuran alamat klien
+
+    system("wget 'https://drive.google.com/uc?export=download&id=10p_kzuOgaFY3WT6FVPJIXFbkej2s9f50' -O /home/winds/soal_4/myanimelist.csv"); // untuk mengunduh file daftar anime dari Google Drive
+
+    FILE *anime_file = fopen("/home/winds/soal_4/myanimelist.csv", "r+"); // Membuka file daftar anime untuk dibaca dan ditulis.
+    if (anime_file == NULL) {
+        perror("Failed to open anime list file"); // Mencetak kesalahan jika pembukaan file gagal.
+        return 1; 
+    }
+
+    FILE *log_file = fopen("/home/winds/soal_4/change.log", "a+"); // Membuka file log untuk penambahan
+    if (log_file == NULL) {
+        // jika file log tidak ada, membuat file log baru
+        FILE *newlog_file = fopen("/home/winds/soal_4/change.log", "w"); // Membuat file log baru
+        if (newlog_file == NULL) {
+            perror("Failed to create log file"); // Mencetak kesalahan jika pembuatan file gagal
+            fclose(anime_file); // Menutup file anime
+            return 1;
+        }
+        fclose(newlog_file); // Menutup file log baru
+        log_file = fopen("/home/winds/soal_4/change.log", "a+"); // Membuka file log untuk penambahan
+        if (log_file == NULL) {
+            perror("Failed to open log file"); 
+            fclose(anime_file); // Menutup file anime
+            return 1; 
+        }
+    }
+
+    server_socket = socket(AF_INET, SOCK_STREAM, 0); // Membuat socket server.
+    if (server_socket < 0) {
+        perror("Failed to create socket");
+        fclose(anime_file); 
+        fclose(log_file); 
+        return 1; 
+    }
+    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        perror("setsockopt(SO_REUSEADDR) failed"); // Mencetak kesalahan jika pengaturan opsi socket gagal.
+        exit(EXIT_FAILURE); 
+    }
+    server_address.sin_family = AF_INET; // Menetapkan alamat family server ke IPv4
+    server_address.sin_addr.s_addr = INADDR_ANY; // Menetapkan alamat IP server untuk menerima koneksi masuk apa pun
+    server_address.sin_port = htons(8080); // Menetapkan port server ke 8080
+
+    if (bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) < 0) {
+        perror("Failed to bind socket"); // Mencetak kesalahan jika pengikatan socket gagal
+        close(server_socket); // Menutup socket server
+        fclose(anime_file); 
+        fclose(log_file); 
+        return 1; 
+    }
+
+    if (listen(server_socket, maks_clients) < 0) {
+        perror("Failed to listen on socket"); // Mencetak kesalahan jika mendengarkan di socket gagal.
+        close(server_socket);
+        fclose(anime_file); 
+        fclose(log_file); 
+        return 1; 
+    }
+
+    printf("Server started. Listening on port 8080...\n"); // Mencetak pesan bahwa server telah dimulai.
+
+    while (1) {
+        client_len = sizeof(client_address); // Menetapkan ukuran alamat klien
+        client_socket = accept(server_socket, (struct sockaddr *)&client_address, &client_len); // Menerima koneksi klien masuk
+        if (client_socket < 0) {
+            perror("Failed to accept client"); // Mencetak kesalahan jika penerimaan klien gagal
+            continue; 
+        }
+
+        handle_client(client_socket, anime_file, log_file); // Menangani permintaan klien
+        break; // Keluar dari loop 
+    }
+
+    fclose(anime_file); // Menutup file anime
+    fclose(log_file); // Menutup file log
+    close(server_socket); // Menutup socket server
+
+    return 0; 
+}
+```
+
+### 2. Membuat **Client.c**
+
+
+
 
 ### Kendala
 Tidak ada kendala pada nomor ini
