@@ -1967,10 +1967,93 @@ int main() {
     return 0; 
 }
 ```
+untuk menjalankan file ini kita perlu command `gcc server.c -o server; ./server`
 
 ### 2. Membuat **Client.c**
+Program ini merupakan client yang terhubung ke server, mengirimkan perintah yang dimasukkan oleh pengguna, dan menampilkan respons dari server.
+```c
+#include <stdio.h>          
+#include <stdlib.h>         
+#include <string.h>        
+#include <unistd.h>         
+#include <sys/socket.h>     
+#include <arpa/inet.h>      
 
+#define size_buffer 1024    // ukuran buffer untuk data yang akan dikirim dan diterima
 
+int main() {                
+    int client_socket;      // Deklarasi variabel untuk socket klien
+    struct sockaddr_in server_address;  // Deklarasi struktur untuk menyimpan alamat server
+    char buffer[size_buffer];           // Deklarasi buffer untuk menyimpan data yang akan dikirim
+    char response[2048];                // Deklarasi buffer untuk menyimpan respons dari server
+
+    //Membuat Socket
+    client_socket = socket(AF_INET, SOCK_STREAM, 0); 
+    if (client_socket < 0) {                         // Memeriksa apakah pembuatan socket gagal
+        perror("Error creating socket");              
+        return 1;                                     
+    }
+
+    server_address.sin_family = AF_INET;  // Menetapkan tipe alamat IP yang digunakan
+    server_address.sin_addr.s_addr = inet_addr("127.0.0.1");  // Mengatur alamat IP server (localhost)
+    server_address.sin_port = htons(8080);                     // Mengatur port server (8080)
+
+    if (connect(client_socket, (struct sockaddr *)&server_address, sizeof(server_address)) < 0) { // Menghubungkan ke server
+        perror("Error connecting to server");  // Menampilkan pesan error jika koneksi gagal
+        return 1;                              
+    }
+
+    printf("Connected to server. Enter commands ('exit' to quit):\n");  // Memberitahu bahwa koneksi berhasil
+
+    while (1) {  // Loop utama untuk mengirim dan menerima data
+
+        printf("\nYou> ");   // Muntuk memasukkan perintah
+        fgets(buffer, size_buffer, stdin);  // Membaca input dari pengguna
+        buffer[strcspn(buffer, "\n")] = '\0';  // Menghilangkan karakter newline di akhir input
+
+        send(client_socket, buffer, strlen(buffer), 0);  // Mengirim data ke server
+
+        if (strcmp(buffer, "exit") == 0) {  // Memeriksa jika pengguna ingin keluar
+            break;  // Keluar dari loop
+        }
+
+        int bytes_received = recv(client_socket, response, sizeof(response) - 1, 0);  // Menerima respons dari server
+        if (bytes_received < 0) {  // Jika ada error saat menerima data
+            perror("recv failed");  // Menampilkan pesan error
+            break;  // Keluar dari loop
+        } else if (bytes_received == 0) {  // Jika server menutup koneksi
+            printf("Server closed the connection.\n");  
+            break;  // Keluar dari loop
+        }
+
+        response[bytes_received] = '\0';  // Menambahkan null terminator di akhir string
+
+        printf("Server:\n");  // Memberitahu bahwa ini adalah respons dari server
+        char *token = strtok(response, "\n"); 
+        while (token != NULL) {
+            printf("%s\n", token);  // Menampilkan setiap bagian respons
+            token = strtok(NULL, "\n");  
+        }
+        printf("\n");
+        if (strstr(response, "Connection closed.") != NULL) {  // Jika respons menyatakan bahwa koneksi ditutup
+            break;  // Keluar dari loop
+        }
+    }
+    close(client_socket);  // Menutup soket
+    return 0; 
+}
+```
+untuk menjalankan file ini kita perlu command `gcc client.c -o client; ./client`
+
+### Dokumentasi
+*pada terminal server*
+![Screenshot from 2024-05-11 20-56-54](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/79549192/99643f23-f45c-4919-bf70-14aa4d4d2417)
+
+*pada terminal client*
+![Screenshot from 2024-05-11 20-57-35](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/79549192/8dacd540-ecf5-44f1-8ec0-37d26af9e6b6)
+![Screenshot from 2024-05-11 20-58-07](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/79549192/652bc96d-de7a-48e3-986f-b52eb38d9e5d)
+![Screenshot from 2024-05-11 20-58-23](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/79549192/5f8577dc-655a-4417-97de-808b076cc972)
+![Screenshot from 2024-05-11 20-58-27](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/79549192/84eb7ad6-ada3-45aa-99f8-5abc68878f2c)
 
 
 ### Kendala
