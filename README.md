@@ -618,7 +618,6 @@ Tidak ada revisi pada soal ini
 
 ### Penjelasan
 
-
 ### Kendala
 
 ### Revisi
@@ -1124,6 +1123,14 @@ int main() {
     return 0;
 }
 ```
+
+### Berikut merupakan demo dari file actions.c, driver.c, dan paddock.c
+
+Client dan server terhubung dengan RPC non local dengan memanfaatkan ip dari vm linux
+![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/130438307/cbb0758e-8943-4922-a4e4-d32060775106)
+
+<br> Berikut merupakan isi dari file race.log (start dari nomor 31) <br>
+![image](https://github.com/irfanqs/Sisop-3-2024-MH-IT27/assets/130438307/6e1b6773-c1ac-41b2-bf32-d7fc432ed9f2)
 
 ### Kendala
 Tidak ada kendala pada soal ini
