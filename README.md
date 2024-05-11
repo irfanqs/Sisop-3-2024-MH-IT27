@@ -1528,7 +1528,38 @@ Tidak ada kendala pada soal ini
 Tidak ada revisi pada soal ini
 
 ## Soal 4
-<details><summary>Klik untuk melihat soal</summary>
+<details><summary>Klik untuk melihat soal</summary>Lewis Hamilton 🏎 seorang wibu akut dan sering melewatkan beberapa episode yang karena sibuk menjadi asisten. Maka dari itu dia membuat list anime yang sedang ongoing (biar tidak lupa) dan yang completed (anime lama tapi pengen ditonton aja). Tapi setelah Lewis pikir-pikir malah kepikiran untuk membuat list anime. Jadi dia membuat file (harap diunduh) dan ingin menggunakan socket yang baru saja dipelajarinya untuk melakukan CRUD pada list animenya. 
+Client dan server terhubung melalui socket. 
+client.c di dalam folder client dan server.c di dalam folder server
+Client berfungsi sebagai pengirim pesan dan dapat menerima pesan dari server.
+Server berfungsi sebagai penerima pesan dari client dan hanya menampilkan pesan perintah client saja.  
+Server digunakan untuk membaca myanimelist.csv. Dimana terjadi pengiriman data antara client ke server dan server ke client.
+- Menampilkan seluruh judul
+- Menampilkan judul berdasarkan genre
+- Menampilkan judul berdasarkan hari
+- Menampilkan status berdasarkan berdasarkan judul
+- Menambahkan anime ke dalam file myanimelist.csv
+- Melakukan edit anime berdasarkan judul
+- Melakukan delete berdasarkan judul
+Selain command yang diberikan akan menampilkan tulisan “Invalid Command”
+Karena Lewis juga ingin track anime yang ditambah, diubah, dan dihapus. Maka dia membuat server dapat mencatat anime yang dihapus dalam sebuah log yang diberi nama change.log.
+Format: [date] [type] [massage]
+Type: ADD, EDIT, DEL
+Ex:
+[29/03/24] [ADD] Kanokari ditambahkan.
+[29/03/24] [EDIT] Kamis,Comedy,Kanokari,completed diubah menjadi Jumat,Action,Naruto,completed.
+[29/03/24] [DEL] Naruto berhasil dihapus.
+
+Koneksi antara client dan server tidak akan terputus jika ada kesalahan input dari client, cuma terputus jika user mengirim pesan “exit”. Program exit dilakukan pada sisi client.
+Hasil akhir:
+soal_4/
+    ├── change.log
+    ├── client/
+    │   └── client.c
+    ├── myanimelist.csv
+    └── server/
+        └── server.c
+
 
 </details>
 
@@ -1548,7 +1579,7 @@ berikut isi dan penjelasan dari file *server.c*
 #include <time.h>
 ```
 
-- maks_client mendifinisikan jumlah maksimum client yang dapat di tangani, sedangkan size_buffer merupakan ukuran buffer untuk membaca data.
+- `maks_client` mendifinisikan jumlah maksimum client yang dapat di tangani, sedangkan size_buffer merupakan ukuran buffer untuk membaca data.
 ```c
 #define maks_clients 10
 #define size_buffer 1024
@@ -1561,7 +1592,7 @@ void send_response(int client_socket, const char *message) {
     send(client_socket, response, strlen(response), 0); // Mengirim pesan yang diformat melalui socket
 }
 ```
-- Fungsi log_change digunakan untuk mencatat perubahan dalam file log, dengan memformat pesan log dengan tanggal dan waktu, jenis perubahan, dan detailnya, lalu menuliskannya ke file log.
+- Fungsi `log_change` digunakan untuk mencatat perubahan dalam file log, dengan memformat pesan log dengan tanggal dan waktu, jenis perubahan, dan detailnya, lalu menuliskannya ke file log.
 ```c
 void log_change(FILE *log_file, const char *type, const char *detail) {
     time_t now;                     // untuk menyimpan waktu saat ini
@@ -1577,7 +1608,7 @@ void log_change(FILE *log_file, const char *type, const char *detail) {
     fflush(log_file);               // membersihkan stream file.
 }
 ```
-- Fungsi handle_client dipanggil untuk menangani koneksi dari client. dia ngrbaca input dari client, memprosesnya, dan memberikan tanggapan sesuai.
+- Fungsi `handle_client` dipanggil untuk menangani koneksi dari client. dia ngrbaca input dari client, memprosesnya, dan memberikan tanggapan sesuai.
 ```c
 void handle_client(int client_socket, FILE *anime_file, FILE *log_file) {
     char buffer[size_buffer];       // buffer untuk menyimpan data yang dibaca dari socket
@@ -1881,7 +1912,7 @@ if (command == NULL) {              // jika perintah .
     close(client_socket); // Menutup socket klien
 }
 ```
-- Fungsi main()  membuka file daftar anime dan file log, membuat dan mengikat socket server. Kemudian, dalam loop utama, server mendengarkan koneksi masuk dari client. Setiap kali koneksi diterima, fungsi handle_client() dipanggil untuk menangani permintaan client. Setelah menangani permintaan, server menutup soket client, file anime, file log, dan socket server sebelum kembali dan mengindikasikan kesuksesan dengan kode keluar 0.
+- Fungsi `main()` membuka file daftar anime dan file log, membuat dan mengikat socket server. Kemudian, dalam loop utama, server mendengarkan koneksi masuk dari client. Setiap kali koneksi diterima, fungsi handle_client() dipanggil untuk menangani permintaan client. Setelah menangani permintaan, server menutup soket client, file anime, file log, dan socket server sebelum kembali dan mengindikasikan kesuksesan dengan kode keluar 0.
 ```c
 int main() {
     int server_socket, client_socket; // Variabel untuk socket server dan client
@@ -1979,7 +2010,7 @@ Program ini merupakan client yang terhubung ke server, mengirimkan perintah yang
 #include <sys/socket.h>     
 #include <arpa/inet.h>      
 
-#define size_buffer 1024    // ukuran buffer untuk data yang akan dikirim dan diterima
+#define size_buffer 1024    //ukuran buffer untuk data yang akan dikirim dan diterima
 
 int main() {                
     int client_socket;      // Deklarasi variabel untuk socket klien
